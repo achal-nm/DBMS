@@ -1,54 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Munch Maps</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <h1>Munch Maps</h1>
-    <div id="restaurants"></div>
-    <script src="client.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Munch Maps</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>Munch Maps</h1>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        fetch("/restaurants")
-          .then((response) => response.json())
-          .then((restaurants) => {
-            const restaurantsDiv = document.getElementById("restaurants");
-            restaurants.forEach((restaurant) => {
-              const restaurantDiv = document.createElement("div");
-              restaurantDiv.classList.add("restaurant");
-              restaurantDiv.innerHTML = `
-                    <h2>${restaurant.Name}</h2>
-                    <p>Contact: ${restaurant.Contact_num}</p>
-                    <p>Website: <a href="${restaurant.WebLink}" target="_blank">${restaurant.WebLink}</a></p>
-                    <p>Branch: ${restaurant.Branch}</p>
-                    <p>Category: ${restaurant.CategoryID}</p>
-                    <p>Price Range: ${restaurant.PriceID}</p>
-                    <p>Service Type: ${restaurant.ServiceTypeID}</p>
-                    <p>Distance: ${restaurant.DistanceID}</p>
-                    <p>Rating: ${restaurant.Rating_id}</p>
-                `;
-              restaurantsDiv.appendChild(restaurantDiv);
-            });
-          })
-          .catch((error) =>
-            console.error("Error fetching restaurants: ", error)
-          );
-      });
+  <div id="filters">
+    <form id="searchForm" onsubmit="event.preventDefault(); searchRestaurants();">
+      <div id="categories" class="filter-group">
+        <label for="category">Select a category:</label>
+        <select id="category">
+          <option value="0">All Categories</option>
+          <option value="1">Italian</option>
+          <option value="2">Chinese</option>
+          <option value="3">Mexican</option>
+        </select>
+      </div>
 
+      <div id="prices" class="filter-group">
+        <label for="price">Select a price range:</label>
+        <select id="price">
+          <option value="0">Any Price</option>
+          <option value="1">$</option>
+          <option value="2">$$</option>
+          <option value="3">$$$</option>
+        </select>
+      </div>
+
+      <div id="distances" class="filter-group">
+        <label for="distance">Select a distance range:</label>
+        <select id="distance">
+          <option value="0">Any Distance</option>
+          <option value="1">Nearby</option>
+          <option value="2">Moderate</option>
+          <option value="3">Far</option>
+        </select>
+      </div>
+
+      <div id="services" class="filter-group">
+        <label for="service">Select a service type:</label>
+        <select id="service">
+          <option value="0">Any Service</option>
+          <option value="1">Dine-in</option>
+          <option value="2">Takeout</option>
+          <option value="3">Delivery</option>
+        </select>
+      </div>
+
+      <div id="ratings" class="filter-group">
+        <label for="rating">Minimum rating:</label>
+        <input type="number" id="rating" min="0" max="5" step="0.1" placeholder="0">
+      </div>
+
+      <button type="submit">Search</button>
+    </form>
+  </div>
+
+  <div id="restaurants" class="restaurants-container"></div>
+  <script src="client.js"></script>
+
+  <script>
+    function searchRestaurants() {
+      // Get selected values from the form and perform the search
+      const category = document.getElementById("category").value;
+      const price = document.getElementById("price").value;
+      const distance = document.getElementById("distance").value;
+      const service = document.getElementById("service").value;
+      const rating = document.getElementById("rating").value;
+
+      // Construct an object with the search criteria
+      const searchCriteria = {
+        category,
+        price,
+        distance,
+        service,
+        rating,
+      };
+
+      // Send the search criteria to the server for processing
+      fetch("/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(searchCriteria),
+      })
+        .then((response) => response.json())
+        .then((restaurants) => {
+          // Update the UI with the search results
+          updateUI(restaurants);
+        })
+        .catch((error) => console.error("Error searching restaurants: ", error));
+    }
+
+    function updateUI(restaurants) {
+      // Update the UI with the fetched restaurants
       const restaurantsDiv = document.getElementById("restaurants");
+      restaurantsDiv.innerHTML = ""; 
+
+      const table = document.createElement("table");
+      table.classList.add("search-results-table");
+
+      const thead = document.createElement("thead");
+      thead.innerHTML = `
+        <tr>
+          <th>Name</th>
+          <th>Contact</th>
+          <th>Website</th>
+          <th>Branch</th>
+          <th>Category</th>
+          <th>Price Range</th>
+          <th>Service Type</th>
+          <th>Distance</th>
+          <th>Rating</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
       restaurants.forEach((restaurant) => {
-        const restaurantDiv = document.createElement("div");
-        restaurantDiv.innerHTML = `
-                <h2>${restaurant.name}</h2>
-                <p>${restaurant.location}</p>
-                <p>${restaurant.rating} stars</p>
-            `;
-        restaurantsDiv.appendChild(restaurantDiv);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${restaurant.Name}</td>
+          <td>${restaurant.Contact_num}</td>
+          <td><a href="${restaurant.WebLink}" target="_blank">${restaurant.WebLink}</a></td>
+          <td>${restaurant.Branch}</td>
+          <td>${restaurant.CategoryID}</td>
+          <td>${restaurant.PriceID}</td>
+          <td>${restaurant.ServiceTypeID}</td>
+          <td>${restaurant.DistanceID}</td>
+          <td>${restaurant.Rating_id}</td>
+        `;
+        tbody.appendChild(tr);
       });
-    </script>
-  </body>
+
+      table.appendChild(tbody);
+      restaurantsDiv.appendChild(table);
+    }
+  </script>
+</body>
 </html>
